@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Local Container Platform</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+</head>
+
+<body>
+
+    <main class="container">
+
+        <section class="hero">
+            <div class="badge">LOCAL CONTAINER PLATFORM</div>
+
+            <h1>
+                Request served by
+                <span>{{ container_id }}</span>
+            </h1>
+
+            <p>
+                Flask service running inside a Docker container
+            </p>
+        </section>
+
+
+        <section class="card">
+
+            <h2>Container Information</h2>
+
+            <div class="info-row">
+                <span>Container</span>
+                <strong>{{ container_id }}</strong>
+            </div>
+
+            <div class="info-row">
+                <span>Hostname</span>
+                <strong>{{ hostname }}</strong>
+            </div>
+
+            <div class="info-row">
+                <span>Status</span>
+                <strong class="healthy">● HEALTHY</strong>
+            </div>
+
+        </section>
+
+
+        <section class="card">
+
+            <h2>Load Balancer Test</h2>
+
+            <p>
+                Send a request through Traefik and see which
+                container handles it.
+            </p>
+
+            <button id="testButton">
+                Send Request
+            </button>
+
+            <pre id="response">
+Click the button to send a request.
+            </pre>
+
+        </section>
+
+    </main>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+
+</body>
+</html>
