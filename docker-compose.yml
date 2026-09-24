@@ -1,0 +1,127 @@
+services:
+
+  traefik:
+    image: traefik:v3.7
+
+    container_name: traefik
+
+    command:
+      - "--configFile=/etc/traefik/traefik.yml"
+
+    ports:
+      - "80:80"
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+
+    networks:
+      - platform
+
+
+  prometheus:
+    image: prom/prometheus:latest
+
+    container_name: prometheus
+
+    ports:
+      - "9090:9090"
+
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+    networks:
+      - platform
+
+
+  grafana:
+    image: grafana/grafana:latest
+
+    container_name: grafana
+
+    ports:
+      - "3000:3000"
+
+    volumes:
+      - grafana-data:/var/lib/grafana
+
+    depends_on:
+      - prometheus
+
+    networks:
+      - platform
+
+
+  cont-1:
+    build:
+      context: ./app
+
+    container_name: cont-1
+
+    environment:
+      CONTAINER_ID: cont-1
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.app.entrypoints=web"
+      - "traefik.http.services.app.loadbalancer.server.port=5000"
+      - "traefik.http.services.app.loadbalancer.healthcheck.path=/health"
+      - "traefik.http.services.app.loadbalancer.healthcheck.interval=10s"
+      - "traefik.http.services.app.loadbalancer.healthcheck.timeout=3s"
+
+    networks:
+      - platform
+
+
+  cont-2:
+    build:
+      context: ./app
+
+    container_name: cont-2
+
+    environment:
+      CONTAINER_ID: cont-2
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.app.entrypoints=web"
+      - "traefik.http.services.app.loadbalancer.server.port=5000"
+      - "traefik.http.services.app.loadbalancer.healthcheck.path=/health"
+      - "traefik.http.services.app.loadbalancer.healthcheck.interval=10s"
+      - "traefik.http.services.app.loadbalancer.healthcheck.timeout=3s"
+
+    networks:
+      - platform
+
+
+  cont-3:
+    build:
+      context: ./app
+
+    container_name: cont-3
+
+    environment:
+      CONTAINER_ID: cont-3
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.app.entrypoints=web"
+      - "traefik.http.services.app.loadbalancer.server.port=5000"
+      - "traefik.http.services.app.loadbalancer.healthcheck.path=/health"
+      - "traefik.http.services.app.loadbalancer.healthcheck.interval=10s"
+      - "traefik.http.services.app.loadbalancer.healthcheck.timeout=3s"
+
+    networks:
+      - platform
+
+
+networks:
+  platform:
+    name: local-platform
+
+
+volumes:
+  grafana-data:
