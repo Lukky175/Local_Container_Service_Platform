@@ -1,69 +1,80 @@
-from flask import Flask, jsonify, render_template, Response
+from flask import Flask, Response, jsonify, render_template, request
+from prometheus_client import Counter, CONTENT_TYPE_LATEST, generate_latest
+import hashlib
 import os
 import socket
 import time
 
-from prometheus_client import Counter, generate_latest, CONTENT_TYPE_LATEST
-
 app = Flask(__name__)
 
-CONTAINER_ID = os.getenv("CONTAINER_ID", "unknown")
+CONTAINER_ID = os.getenv("CONTAINER_ID") or socket.gethostname()
 
-
-# Prometheus metric
 REQUEST_COUNT = Counter(
     "http_requests_total",
     "Total number of HTTP requests",
-    ["method", "endpoint", "container"]
+    ["method", "endpoint", "container"],
 )
-
 
 @app.before_request
 def track_request():
-    from flask import request
-
     REQUEST_COUNT.labels(
         method=request.method,
         endpoint=request.path,
-        container=CONTAINER_ID
+        container=CONTAINER_ID,
     ).inc()
-
 
 @app.route("/")
 def home():
     return render_template(
         "index.html",
         container_id=CONTAINER_ID,
-        hostname=socket.gethostname()
+        hostname=socket.gethostname(),
     )
-
 
 @app.route("/api")
 def api():
-    return jsonify({
-        "service": "dummy-service",
-        "container": CONTAINER_ID,
-        "hostname": socket.gethostname(),
-        "status": "running",
-        "timestamp": time.time()
-    })
-
+    return jsonify(
+        {
+            "service": "dummy-service",
+            "container": CONTAINER_ID,
+            "hostname": socket.gethostname(),
+            "status": "running",
+            "timestamp": time.time(),
+        }
+    )
 
 @app.route("/health")
 def health():
-    return jsonify({
-        "status": "healthy",
-        "container": CONTAINER_ID
-    }), 200
-
+    return jsonify({"status": "healthy", "container": CONTAINER_ID}), 200
 
 @app.route("/metrics")
 def metrics():
-    return Response(
-        generate_latest(),
-        mimetype=CONTENT_TYPE_LATEST
+    return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
+
+@app.route("/work")
+def work():
+    # Bound CPU work to 0.05–1.0 seconds per request.
+    duration = request.args.get("duration", default=0.25, type=float)
+    duration = max(0.05, min(duration, 1.0))
+
+    deadline = time.perf_counter() + duration
+    data = b"local-container-platform"
+    iterations = 0
+
+    while time.perf_counter() < deadline:
+        data = hashlib.sha256(data).digest()
+        iterations += 1
+
+    return jsonify(
+        {
+            "service": "dummy-service",
+            "container": CONTAINER_ID,
+            "hostname": socket.gethostname(),
+            "status": "work-completed",
+            "duration_seconds": duration,
+            "iterations": iterations,
+        }
     )
 
-
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
